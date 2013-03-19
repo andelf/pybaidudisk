@@ -12,6 +12,8 @@ import urllib2
 import cookielib
 import json
 import time
+import mimetypes
+import random
 
 import atexit
 
@@ -68,6 +70,58 @@ TASK_STATUS = {0: u'\u4e0b\u8f7d\u6210\u529f',
                7: u'\u4efb\u52a1\u53d6\u6d88',
                8: u'\u76ee\u6807\u5730\u5740\u6570\u636e\u5df2\u5b58\u5728',
                9: u'\u4efb\u52a1\u5220\u9664'}
+
+
+def mulitpart_urlencode(fieldname, filename, max_size=1024, **params):
+    """Pack image from file into multipart-formdata post body"""
+    try:
+        os.path.getsize(filename)
+    except os.error:
+        raise IOError('Unable to access file')
+
+    # image must be gif, jpeg, or png
+    file_type = mimetypes.guess_type(filename)
+    if file_type is None:
+        raise QWeiboError('Could not determine file type')
+    file_type = file_type[0]
+
+    # build the mulitpart-formdata body
+    BOUNDARY = 'ANDELF%s----' % ''.join(
+        random.sample('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 10))
+    body = []
+    for key, val in params.items():
+        if val is not None:
+            body.append('--' + BOUNDARY)
+            body.append('Content-Disposition: form-data; name="%s"' % key)
+            body.append('Content-Type: text/plain; charset=UTF-8')
+            body.append('Content-Transfer-Encoding: 8bit')
+            body.append('')
+            val = val
+            body.append(val)
+    fp = open(filename, 'rb')
+    body.append('--' + BOUNDARY)
+    body.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (fieldname, filename.encode('utf-8')))
+    body.append('Content-Type: %s' % file_type)
+    body.append('Content-Transfer-Encoding: binary')
+    body.append('')
+    body.append(fp.read())
+    body.append('--%s--' % BOUNDARY)
+    body.append('')
+    fp.close()
+    body.append('--%s--' % BOUNDARY)
+    body.append('')
+    # fix py3k
+    #for i in range(len(body)):
+    #    body[i] = body[i]
+    body = str('\r\n'.join(body)) #
+    # build headers
+    headers = {
+        'Content-Type': 'multipart/form-data; boundary=%s' % BOUNDARY,
+        'Content-Length': len(body)
+    }
+
+    return headers, body
+
 
 class NetDisk(object):
     def __init__(self, opener):
@@ -224,6 +278,41 @@ class NetDisk(object):
         else:
             print 'error', ret
 
+    def upload(self, filepath):
+        headers, body = mulitpart_urlencode("Filedata", filepath,
+                                            Filename=os.path.basename(filepath),
+                                            Upload="Submit Query")
+        params = dict(method='upload',
+                      type='tmpfile',
+                      app_id=250528,
+                      BDUSS=self._bduss())
+        req = urllib2.Request("http://c.pcs.baidu.com/rest/2.0/pcs/file?" + \
+                                  urllib.urlencode(params),
+                              body, headers)
+        resp = self.urlopen(req)
+        ret = json.load(resp)
+        size = os.path.getsize(filepath)
+        # {"md5":"16c1c8e61670eac54979f3da18b954ab","request_id":839611680}
+        return self._create(os.path.join("/", os.path.basename(filepath)),
+                            [ret['md5']], size)
+
+
+    def _create(self, path, blocks, size):
+        params = dict(path = path,
+                      isdir = 0,
+                      size = size,
+                      block_list = json.dumps(blocks),
+                      method = 'post')
+        req = urllib2.Request("http://pan.baidu.com/api/create?a=commit&channel=chunlei&clienttype=0&web=1",
+                              urllib.urlencode(params))
+        resp = self.urlopen(req)
+        ret = json.load(resp)
+        # {"fs_id":2157439985,"server_filename":"ck.txt","path":"\/ck.txt","size":1728,"ctime":1363701601,"mtime":1363701601,"isdir":0,"errno":0}
+        if ret['errno'] == 0:
+            print ret['path'], "save ok!"
+        else:
+            print error, ret
+        return ret
 
 def usage():
     print '= subcommands'
@@ -265,6 +354,10 @@ def main():
         c.rename(*args)
     elif cmd in ['mv', 'move']:
         c.move(*args)
+    elif cmd in ['put', 'upload']:
+        c.upload(args[0])
+
+
 if __name__ == '__main__':
     #c = NetDisk(opener)
     #c.wget("http://www.baidu.com")
