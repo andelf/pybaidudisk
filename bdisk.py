@@ -42,7 +42,6 @@ remain = ''
 for line in resp:
     if 'remainingSpace' in line:
         remain = remain or re.sub(r'<.*?>', '', line).strip()
-# now rename is null/null
 
 def timestamp():
     return str(int(time.time() * 1000))
@@ -255,7 +254,7 @@ class NetDisk(object):
     def move(self, src, dst):
         params = dict(filelist=json.dumps([dict(path=src,
                                                 dest=os.path.dirname(dst),
-                                                newname=os.path.basename(dst))]))
+                                                newname=os.path.basename(dst) or os.path.basename(src))]))
         req = urllib2.Request("http://pan.baidu.com/api/filemanager?"
                               "channel=chunlei&clienttype=0&web=1&opera=move",
                               urllib.urlencode(params))
@@ -294,6 +293,8 @@ class NetDisk(object):
         return self._create(os.path.join("/", os.path.basename(filepath)),
                             [ret['md5']], size)
 
+    def mkdir(self, path):
+        return self._create(path, [], "")
 
     def _create(self, path, blocks, size):
         params = dict(path = path,
@@ -354,6 +355,8 @@ def main():
         c.move(*args)
     elif cmd in ['put', 'upload']:
         c.upload(args[0])
+    elif cmd in ['md', 'mkdir']:
+        c.mkdir(args[0])
 
 
 if __name__ == '__main__':
