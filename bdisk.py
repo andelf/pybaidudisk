@@ -42,9 +42,7 @@ remain = ''
 for line in resp:
     if 'remainingSpace' in line:
         remain = remain or re.sub(r'<.*?>', '', line).strip()
-
-print remain
-
+# now rename is null/null
 
 def timestamp():
     return str(int(time.time() * 1000))
@@ -188,7 +186,7 @@ class NetDisk(object):
             tasks = self.status(task_id)
             #print tasks
             if any(map(lambda t: int(t['status']) == 1, tasks.values())):
-                time.sleep(4)
+                time.sleep(6)
                 continue
             break
         return
