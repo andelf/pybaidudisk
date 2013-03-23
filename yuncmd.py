@@ -40,6 +40,9 @@ class YunCmd(Cmd):
     complete_mv = _complete_a_path
 
     def do_ls(self, arg):
+        """ls: list dir content
+        ls [dir_name]
+        """
         try:
             path, = shlex.split(arg)
             path = os.path.normpath(os.path.join(self._cp, path))
@@ -48,11 +51,18 @@ class YunCmd(Cmd):
         self._c.list(path)
 
     def do_rm(self, arg):
+        """rm: remove file or dir
+        rm dir_name
+        rm file_name
+        """
         path, = shlex.split(arg)
         path = os.path.normpath(os.path.join(self._cp, path))
         self._c.remove(path)
 
     def do_mv(self, arg):
+        """mv: move file or dir
+        mv src dst
+        """
         src, dst = shlex.split(arg)
         fname = os.path.basename(src)
         src = os.path.normpath(os.path.join(self._cp, src))
@@ -63,6 +73,9 @@ class YunCmd(Cmd):
             self._c.move(src, os.path.dirname(dst), os.path.basename(dst))
 
     def do_cd(self, path):
+        """cd: change directory to
+        cd [dir]
+        """
         if path == '':
             self._cp = '/'
         else:
@@ -70,18 +83,30 @@ class YunCmd(Cmd):
             self._cp = p
 
     def do_mkdir(self, arg):
+        """mkdir: make a new dir
+        mkdir [dir_name]
+        """
         path, = shlex.split(arg)
         self._c.mkdir(path)
 
     def do_wget(self, url):
-        tid = self._c.wget(url)
+        """wget: download from url
+        wget [url]
+        """
+        tid = self._c.wget(url, self._cp)
         print "TASK ID =>", tid
         self._c.watch(tid)
 
     def do_du(self, _):
+        """du: disk usage
+        du
+        """
         self._c.quota()
 
     def do_pwd(self, _):
+        """pwd: present working directory
+        pwd
+        """
         print self._cp
 
 if __name__ == '__main__':

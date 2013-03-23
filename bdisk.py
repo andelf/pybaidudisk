@@ -143,13 +143,13 @@ class NetDisk(object):
         if ret['errno'] != 0:
             raise RuntimeError('method not supported')
 
-    def wget(self, url):
+    def wget(self, url, save_to='/'):
         self._wget_analytics()
         params = dict(method = 'add_task',
                       app_id = 250528,
                       BDUSS = self._bduss(),
                       source_url = url,
-                      save_path = '/')
+                      save_path = save_to)
 
         req = urllib2.Request("http://pan.baidu.com/rest/2.0/services/cloud_dl?",
                               urllib.urlencode(params))
