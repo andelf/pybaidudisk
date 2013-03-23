@@ -190,6 +190,9 @@ class NetDisk(object):
             break
         return
 
+    def fetch(self, path):
+        pass
+
     def list(self, dir="/", page=1, initialCall=True):
         params = dict(channel='chunlei',
                       clienttype=0,
