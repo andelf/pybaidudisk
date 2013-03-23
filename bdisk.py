@@ -193,7 +193,26 @@ class NetDisk(object):
     def fetch(self, path):
         pass
 
-    def list(self, dir="/", page=1, initialCall=True):
+    def list(self, dir="/"):
+        files = self._list(dir)
+        if files is None:
+            print 'no such dir'
+            return []
+        print "total", len(files), dir
+        for f in files:
+            if f['isdir'] == 1:
+                print 'd',
+            else:
+                print '-',
+            print '\t', format_size(f.get('size', 0)),
+            print '\t', time.strftime("%Y-%m-%d %H:%M",
+                                      time.localtime(f['server_mtime'])),
+            print '\t', f['server_filename']
+        return files
+
+
+    def _list(self, dir="/", page=1, initialCall=True):
+        # None for error
         params = dict(channel='chunlei',
                       clienttype=0,
                       web=1,
@@ -209,20 +228,16 @@ class NetDisk(object):
 
         files = ret['list']
         if len(files) == 100:
-            files.extend(self.list(dir, page=page+1, initialCall=False))
-        if initialCall == False: # this is a paging req
-            return files
-        print "total", len(files), dir
-        for f in files:
-            if f['isdir'] == 1:
-                print 'd',
-            else:
-                print '-',
-            print '\t', format_size(f.get('size', 0)),
-            print '\t', time.strftime("%Y-%m-%d %H:%M",
-                                      time.localtime(f['server_mtime'])),
-            print '\t', f['server_filename']
+            files.extend(self._list(dir, page=page+1, initialCall=False))
         return files
+
+    def isdir(self, dir):
+        parent_path = os.path.dirname(dir)
+        dir_name = unicode(os.path.basename(dir), 'utf-8')
+        for d in self._list(parent_path):
+            if dir_name == d['server_filename']:
+                return True
+        return False
 
     def remove(self, path):
         """remove file(s)"""
@@ -236,8 +251,10 @@ class NetDisk(object):
         if ret['errno'] == 0:
             for i in ret['info']:
                 print i['path'], i['errno'] == 0
+            return True
         else:
             print "error:", ret
+            return False
 
     def rename(self, path, newname):
         newname = os.path.basename(newname)
@@ -254,10 +271,10 @@ class NetDisk(object):
         else:
             print "error:", ret
 
-    def move(self, src, dst):
+    def move(self, src, dst, newname):
         params = dict(filelist=json.dumps([dict(path=src,
-                                                dest=os.path.dirname(dst),
-                                                newname=os.path.basename(dst) or os.path.basename(src))]))
+                                                dest=dst,
+                                                newname=newname or os.path.basename(src))]))
         req = urllib2.Request("http://pan.baidu.com/api/filemanager?"
                               "channel=chunlei&clienttype=0&web=1&opera=move",
                               urllib.urlencode(params))
@@ -273,7 +290,7 @@ class NetDisk(object):
         resp = self.urlopen("http://pan.baidu.com/api/quota?channel=chunlei&clienttype=0&web=1&t=" + timestamp())
         ret = json.load(resp)
         if ret['errno'] == 0:
-            print ret['used'], "/", ret['total']
+            print format_size(ret['used']), "/", format_size(ret['total'])
             print "%3.2f%%" % (ret['used'] / ret['total'] * 100)
         else:
             print 'error', ret
