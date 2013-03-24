@@ -31,9 +31,9 @@ cp = urllib2.HTTPCookieProcessor(cj)
 opener = urllib2.build_opener(cp)
 opener.addheaders = [
     ('User-agent', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.24 ' \
-         '(KHTML, like Gecko) Chrome/19.0.1056.0 Safari/535.24'),]
-
-
+         '(KHTML, like Gecko) Chrome/19.0.1056.0 Safari/535.24'),
+    ('Referer', 'http://pan.baidu.com/disk/home'),
+]
 
 resp = opener.open("http://pan.baidu.com/")
 
@@ -190,6 +190,21 @@ class NetDisk(object):
             break
         return
 
+    def list_task(self):
+        query = dict(method='list_task',
+                     app_id=250528,
+                     BDUSS=self._bduss(),
+                     need_task_info=1,
+                     status=255,
+                     t=timestamp())
+        req = urllib2.Request("http://pan.baidu.com/rest/2.0/services/cloud_dl?" + \
+                              urllib.urlencode(query))
+        resp = self.urlopen(req)
+        ret = json.load(resp)
+
+        tasks = ret['task_info']
+        return tasks
+
     def fetch(self, path):
         pass
 
@@ -314,11 +329,11 @@ class NetDisk(object):
                             [ret['md5']], size)
 
     def mkdir(self, path):
-        return self._create(path, [], "")
+        return self._create(path, [], "", isdir=1)
 
-    def _create(self, path, blocks, size):
+    def _create(self, path, blocks, size, isdir=0):
         params = dict(path = path,
-                      isdir = 0,
+                      isdir = isdir,
                       size = size,
                       block_list = json.dumps(blocks),
                       method = 'post')
@@ -330,7 +345,7 @@ class NetDisk(object):
         if ret['errno'] == 0:
             print ret['path'], "save ok!"
         else:
-            print error, ret
+            print 'error', ret
         return ret
 
 def usage():

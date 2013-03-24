@@ -15,6 +15,9 @@ class YunCmd(Cmd):
         self._c = client
         self._cp = '/'
 
+    def emptyline(self):
+        return
+
     def _complete_path(self, prefix):
         prefix_name = os.path.basename(prefix)
         if prefix_name:
@@ -28,9 +31,9 @@ class YunCmd(Cmd):
 
     def _complete_a_path(self, text, line, begidx, endidx):
         prefix = ''
-        if len(line) >= 3:
-            prefix = line[3:]
-        else:
+        try:
+            _, prefix = line.split(' ', 1)
+        except:
             return []
         return self._complete_path(prefix)
 
@@ -38,6 +41,7 @@ class YunCmd(Cmd):
     complete_ls = _complete_a_path
     complete_rm = _complete_a_path
     complete_mv = _complete_a_path
+    complete_get = _complete_a_path
 
     def do_ls(self, arg):
         """ls: list dir content
@@ -87,7 +91,8 @@ class YunCmd(Cmd):
         mkdir [dir_name]
         """
         path, = shlex.split(arg)
-        self._c.mkdir(path)
+        p = os.path.normpath(os.path.join(self._cp, path))
+        self._c.mkdir(p)
 
     def do_wget(self, url):
         """wget: download from url
@@ -96,6 +101,17 @@ class YunCmd(Cmd):
         tid = self._c.wget(url, self._cp)
         print "TASK ID =>", tid
         self._c.watch(tid)
+
+    def do_get(self, path):
+        """get: open browser and download sth
+        get [file_name]
+        """
+        p = os.path.normpath(os.path.join(self._cp, path))
+        filename = os.path.basename(p)
+        for f in self._c._list(os.path.dirname(p)):
+            if f['server_filename'] == filename:
+                url = f['dlink']
+                print url
 
     def do_du(self, _):
         """du: disk usage
@@ -108,6 +124,21 @@ class YunCmd(Cmd):
         pwd
         """
         print self._cp
+
+    def do_jobs(self, _):
+        """jobs: list current download jobs
+        jobs
+        """
+        tasks = self._c.list_task()
+        for t in [t for t in tasks if int(t['status']) in [1,0]]:
+            print t['task_id'], '\t', bdisk.TASK_STATUS[int(t['status'])], \
+                '\t', t['task_name'], '\t\t', t['source_url']
+
+    def do_watch(self, arg):
+        """watch: watch some task
+        watch [task_id]
+        """
+        self._c.watch(arg)
 
 if __name__ == '__main__':
     client = bdisk.NetDisk(bdisk.opener)
