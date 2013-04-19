@@ -10,6 +10,17 @@ import cookielib
 
 import atexit
 
+import time
+import platform
+
+# fix 32bit time_t.
+if platform.architecture()[0].startswith('32'):
+    old_gmtime = time.gmtime
+    def gmtime(t):
+        if t > 2000000000:
+            t = 2000000000
+        return old_gmtime(t)
+    time.gmtime = gmtime
 
 def strip_url(u):
     return u.replace('&amp;', '&')
@@ -58,6 +69,7 @@ req = urllib2.Request(post_url, data)
 html = opener.open(req).read()
 if "请输入以下图片中的验证码" in html:
     print 'verify code needed, TODO later'
+    raise SystemExit
 
 refresh_url, = re.findall(r'<meta http-equiv="refresh" content="\d+;url=(.*?)"', html)
 #print refresh_url
