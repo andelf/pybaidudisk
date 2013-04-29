@@ -25,7 +25,7 @@ __cookies__ = os.path.join(os.path.dirname(__file__), 'cookies.txt')
 
 cj = cookielib.LWPCookieJar(__cookies__)
 cj.load()
-atexit.register(lambda : cj.save())
+#atexit.register(lambda : cj.save())
 
 cp = urllib2.HTTPCookieProcessor(cj)
 opener = urllib2.build_opener(cp)

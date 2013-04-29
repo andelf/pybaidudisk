@@ -3,7 +3,11 @@ pybaidudisk
 
 百度网盘 命令行 Python 版
 
+请确认 cookies.txt 中包含 BAIDUID, BDUSS 两只 cookie.
+
 ## example
+
+	python yuncmd.py
 
 ```
 # cloud download
