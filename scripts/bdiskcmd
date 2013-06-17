@@ -1,0 +1,25 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from pybaidudisk import run_cmd
+
+from optparse import OptionParser
+
+
+def process_arguments():
+    '''init processArguments '''
+    parser = OptionParser(usage="Usage: bdiskcmd [options] [arg]", version="pybaidudisk 0.1")
+    parser.add_option("-u", "--username", dest="username", help="username for baidu netdisk")
+    parser.add_option("-p", "--password", dest="password", help="password for baidu netdisk")
+    
+    (options, args) = parser.parse_args()    
+    
+    if options.username and options.password:
+        run_cmd(options.username, options.password)
+    else:    
+        parser.print_help()
+        
+        
+        
+if __name__ == "__main__":        
+    process_arguments()
