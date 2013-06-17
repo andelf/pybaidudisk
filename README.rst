@@ -13,9 +13,9 @@ pybaidudisk
 .. sourcecode:: python
 
     >>> from pybaidudisk import NetDisk
-	>>> disk = NetDisk(username, password)
-	>>> if disk.check_login():
-	...     disk.list()
+    >>> disk = NetDisk(username, password)
+    >>> if disk.check_login():
+    ...     disk.list()
 	
 	
     >>> from pybaidudisk import run_cmd
